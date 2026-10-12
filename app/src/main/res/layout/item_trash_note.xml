@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="12dp"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="@drawable/bg_note_card">
+
+    <!-- Note title -->
+    <TextView
+        android:id="@+id/trashNoteTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Shopping list"
+        android:textColor="#FFFFFF"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:maxLines="2"
+        android:ellipsize="end" />
+
+    <!-- Note content -->
+    <TextView
+        android:id="@+id/trashNoteContent"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Milk, eggs, bread..."
+        android:textColor="#D0D0D0"
+        android:textSize="16sp"
+        android:maxLines="3"
+        android:ellipsize="end" />
+
+    <!-- Deletion date -->
+    <TextView
+        android:id="@+id/trashDeletedDate"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="Deleted on 12 Oct 2026"
+        android:textColor="#A9AAAA"
+        android:textSize="14sp" />
+
+    <!-- Divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="14dp"
+        android:layout_marginBottom="12dp"
+        android:background="#454849" />
+
+    <!-- Restore and delete actions -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/restoreNoteButton"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="Restore"
+            android:textColor="#62D6A5"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:textAllCaps="false"
+            android:background="@drawable/bg_restore_button"
+            android:backgroundTint="@null"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:padding="0dp" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/deleteForeverButton"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:layout_marginStart="10dp"
+            android:gravity="center"
+            android:text="Delete forever"
+            android:textColor="#FF4164"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:textAllCaps="false"
+            android:background="@drawable/bg_trash_button"
+            android:backgroundTint="@null"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:padding="0dp" />
+
+    </LinearLayout>
+
+</LinearLayout>
