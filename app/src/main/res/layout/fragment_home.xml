@@ -38,7 +38,7 @@
             android:layout_marginRight="10dp"
             android:background="@drawable/bg_filter"
             android:src="@drawable/ic_sort"
-            android:contentDescription="Open trash"
+            android:contentDescription="Filter By"
             android:clickable="true"
             android:focusable="true"
             android:scaleType="fitCenter" />
@@ -68,7 +68,7 @@
         android:paddingEnd="14dp"
         android:textColor="#FFFFFF"
         android:textColorHint="#969A9B"
-        android:textSize="13sp"
+        android:textSize="18sp"
         android:singleLine="true"
         android:inputType="text"/>
 
