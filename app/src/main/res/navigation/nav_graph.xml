@@ -19,6 +19,9 @@
         <action
             android:id="@+id/action_homeFragment_to_detailsFragment"
             app:destination="@id/detailsFragment" />
+        <action
+            android:id="@+id/action_homeFragment_to_trashFragment"
+            app:destination="@id/trashFragment" />
     </fragment>
     <fragment
         android:id="@+id/addFragment"
@@ -38,7 +41,11 @@
         android:id="@+id/trashFragment"
         android:name="com.example.notesapp.ui.trash.TrashFragment"
         android:label="TrashFragment"
-        tools:layout="@layout/fragment_trash"/>
+        tools:layout="@layout/fragment_trash">
+        <argument
+            android:name="noteId"
+            app:argType="string" />
+    </fragment>
     <fragment
         android:id="@+id/detailsFragment"
         android:name="com.example.notesapp.ui.detail.DetailsFragment"
