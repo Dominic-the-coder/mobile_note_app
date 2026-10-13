@@ -1,4 +1,3 @@
-
 package com.example.notesapp.ui.home
 
 import androidx.lifecycle.ViewModel
@@ -30,20 +29,10 @@ class HomeViewModel(
         getNotes()
     }
 
-    fun getNotes() {
+    private fun getNotes() {
         viewModelScope.launch {
             repo.getNotes().collect { items ->
                 _notes.update { items }
-            }
-        }
-    }
-
-    fun addNote(note: Note) {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                repo.addNote(note)
-            } catch (e: Exception) {
-                _error.value = e.message ?: "Failed to add note"
             }
         }
     }
@@ -56,6 +45,10 @@ class HomeViewModel(
                 _error.value = e.message ?: "Failed to delete note"
             }
         }
+    }
+
+    fun clearError() {
+        _error.value = null
     }
 
     companion object {
