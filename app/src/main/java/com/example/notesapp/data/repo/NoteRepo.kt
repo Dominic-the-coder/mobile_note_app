@@ -18,4 +18,6 @@ interface NoteRepo {
     fun getTrashNotes(): Flow<List<Note>>
 
     suspend fun restoreNote(id: String)
+
+    suspend fun permanentlyDeleteNote(id: String)
 }

@@ -70,11 +70,14 @@ class NoteRepoImpl(
     }
 
     override suspend fun deleteNote(id: String) {
+        val now = System.currentTimeMillis()
+
         collectionReference.document(id)
             .update(
                 mapOf(
                     "isDeleted" to true,
-                    "updatedAt" to System.currentTimeMillis()
+                    "updatedAt" to now,
+                    "deletedAt" to now
                 )
             )
             .await()
@@ -109,13 +112,14 @@ class NoteRepoImpl(
             .update(
                 mapOf(
                     "isDeleted" to false,
-                    "updatedAt" to System.currentTimeMillis()
+                    "updatedAt" to System.currentTimeMillis(),
+                    "deletedAt" to com.google.firebase.firestore.FieldValue.delete()
                 )
             )
             .await()
     }
 
-    suspend fun permanentlyDeleteNote(id: String) {
+    override suspend fun permanentlyDeleteNote(id: String) {
         collectionReference.document(id).delete().await()
     }
 }
