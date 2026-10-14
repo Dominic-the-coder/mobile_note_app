@@ -1,7 +1,5 @@
 package com.example.notesapp.ui.manage.edit
 
-import android.util.Log
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
@@ -10,14 +8,16 @@ import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.AP
 import com.example.notesapp.MyApp
 import com.example.notesapp.data.model.Note
 import com.example.notesapp.data.repository.NoteRepo
+import com.example.notesapp.ui.manage.base.BaseManageViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class EditViewModel(
-    private val repo: NoteRepo
-) : ViewModel() {
+    repo: NoteRepo
+) : BaseManageViewModel(repo) {
 
     private val _note = MutableStateFlow<Note?>(null)
     val note: StateFlow<Note?> = _note
@@ -28,38 +28,35 @@ class EditViewModel(
     private val _deleteResult = MutableStateFlow<Boolean?>(null)
     val deleteResult: StateFlow<Boolean?> = _deleteResult
 
-    private val _error = MutableStateFlow<String?>(null)
-    val error: StateFlow<String?> = _error
+    private var loadedNoteId: String? = null
 
     fun setInitialNote(note: Note) {
         _note.value = note
     }
 
-
     fun loadNote(id: String) {
-        if (id.isBlank()) return
+        if (id.isBlank() || loadedNoteId == id) return
 
-        // Skip the request if this note is already loaded.
-        if (_note.value?.id == id) return
+        loadedNoteId = id
 
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             try {
-                val latestNote = repo.getNoteById(id)
+                val loadedNote = withContext(Dispatchers.IO) {
+                    repo.getNoteById(id)
+                }
 
-                if (latestNote != null) {
-                    _note.value = latestNote
+                if (loadedNote != null) {
+                    _note.value = loadedNote
+                } else {
+                    _error.value = "Note not found"
+                    loadedNoteId = null
                 }
             } catch (e: Exception) {
-                Log.e(
-                    "EditViewModel",
-                    "Failed to refresh note",
-                    e
-                )
+                loadedNoteId = null
+                _error.value = e.message ?: "Failed to load note"
             }
         }
     }
-
-
 
     fun updateNote(
         title: String,
@@ -68,13 +65,15 @@ class EditViewModel(
     ) {
         val currentNote = _note.value
 
-        if (currentNote == null) {
-            _error.value = "Note has not loaded yet"
+        if (currentNote == null || currentNote.id.isNullOrBlank()) {
+            _error.value = "Note not found"
+            _saveResult.value = false
             return
         }
 
         if (title.isBlank()) {
-            _error.value = "Please enter a title"
+            _error.value = "Title cannot be empty"
+            _saveResult.value = false
             return
         }
 
@@ -85,41 +84,42 @@ class EditViewModel(
             updatedAt = System.currentTimeMillis()
         )
 
-        // Update the UI state immediately.
-        _note.value = updatedNote
-        _saveResult.value = null
-        _error.value = null
-
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             try {
-                // Save the updated note to Firestore.
-                repo.updateNote(updatedNote)
+                withContext(Dispatchers.IO) {
+                    repo.updateNote(updatedNote)
+                }
 
+                _note.value = updatedNote
                 _saveResult.value = true
+                _finish.emit(Unit)
             } catch (e: Exception) {
-                _error.value = e.message ?: "Failed to update note"
                 _saveResult.value = false
+                _error.value = e.message ?: "Failed to update note"
             }
         }
     }
 
-
     fun moveToTrash() {
         val currentNote = _note.value
+        val id = currentNote?.id
 
-        if (currentNote?.id.isNullOrBlank()) {
-            _error.value = "Note ID is missing"
+        if (id.isNullOrBlank()) {
+            _error.value = "Note not found"
             _deleteResult.value = false
             return
         }
 
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             try {
-                repo.deleteNote(currentNote!!.id!!)
+                withContext(Dispatchers.IO) {
+                    repo.deleteNote(id)
+                }
+
                 _deleteResult.value = true
             } catch (e: Exception) {
-                _error.value = e.message ?: "Failed to move note to trash"
                 _deleteResult.value = false
+                _error.value = e.message ?: "Failed to move note to Trash"
             }
         }
     }
@@ -130,10 +130,6 @@ class EditViewModel(
 
     fun resetDeleteResult() {
         _deleteResult.value = null
-    }
-
-    fun clearError() {
-        _error.value = null
     }
 
     companion object {

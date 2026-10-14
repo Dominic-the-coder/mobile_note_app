@@ -1,62 +1,62 @@
 package com.example.notesapp.ui.manage.add
 
 import android.os.Bundle
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
-import android.widget.Toast
-import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import com.example.notesapp.R
-import com.example.notesapp.databinding.FragmentAddBinding
+import com.example.notesapp.ui.manage.base.BaseManageFragment
 import kotlinx.coroutines.launch
 
-class AddFragment : Fragment() {
+class AddFragment : BaseManageFragment() {
 
-    private var _binding: FragmentAddBinding? = null
-    private val binding get() = _binding!!
-
-    private val viewModel: AddViewModel by viewModels {
+    override val viewModel: AddViewModel by viewModels {
         AddViewModel.factory
     }
 
     private val noteColors = mapOf(
         R.id.color0 to 0xFF2D3033L,
         R.id.color1 to 0xFF3B5B50L,
-        R.id.color2 to 0xFFE0B94F.toLong(),
+        R.id.color2 to 0xFFE0B94FL,
         R.id.color3 to 0xFFB96648L,
-        R.id.color4 to 0xFF854F5A.toLong(),
-        R.id.color5 to 0xFF505255.toLong()
+        R.id.color4 to 0xFF854F5AL,
+        R.id.color5 to 0xFF505255L
     )
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        _binding = FragmentAddBinding.inflate(inflater, container, false)
-        return binding.root
-    }
+    private var selectedColor = 0xFF2D3033L
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+    override fun onViewCreated(
+        view: View,
+        savedInstanceState: Bundle?
+    ) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Select the default color
+        binding.editorHeading.text = "New note"
+        binding.saveNoteButton.text = "Save"
+
         binding.colorChipGroup.check(R.id.color0)
 
+        setupListeners()
+        observeSaveResult()
+        observeErrors()
+    }
+
+    private fun setupListeners() {
         binding.backButton.setOnClickListener {
             findNavController().navigateUp()
+        }
+
+        binding.colorChipGroup.setOnCheckedStateChangeListener { group, _ ->
+            val checkedId = group.checkedChipId
+            selectedColor = noteColors[checkedId] ?: 0xFF2D3033L
         }
 
         binding.saveNoteButton.setOnClickListener {
             saveNote()
         }
-
-        observeSaveResult()
     }
 
     private fun saveNote() {
@@ -64,17 +64,9 @@ class AddFragment : Fragment() {
         val content = binding.editContent.text.toString().trim()
 
         if (title.isBlank() && content.isBlank()) {
-            Toast.makeText(
-                requireContext(),
-                "Please enter a title or content",
-                Toast.LENGTH_SHORT
-            ).show()
+            showMessage("Please enter a title or note content")
             return
         }
-
-        val selectedColor = noteColors[
-            binding.colorChipGroup.checkedChipId
-        ] ?: 0xFF2D3033L
 
         binding.saveNoteButton.isEnabled = false
 
@@ -87,30 +79,20 @@ class AddFragment : Fragment() {
 
     private fun observeSaveResult() {
         viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            viewLifecycleOwner.repeatOnLifecycle(
+                Lifecycle.State.STARTED
+            ) {
                 viewModel.saveResult.collect { result ->
                     when (result) {
                         true -> {
+                            showMessage("Note saved successfully")
                             viewModel.resetResult()
-
-                            Toast.makeText(
-                                requireContext(),
-                                "Note saved successfully",
-                                Toast.LENGTH_SHORT
-                            ).show()
-
-                            findNavController().navigateUp()
                         }
 
                         false -> {
-                            viewModel.resetResult()
+                            showMessage("Failed to save note")
                             binding.saveNoteButton.isEnabled = true
-
-                            Toast.makeText(
-                                requireContext(),
-                                "Unable to save note. Please try again.",
-                                Toast.LENGTH_SHORT
-                            ).show()
+                            viewModel.resetResult()
                         }
 
                         null -> Unit
@@ -120,8 +102,18 @@ class AddFragment : Fragment() {
         }
     }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
+    private fun observeErrors() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(
+                Lifecycle.State.STARTED
+            ) {
+                viewModel.error.collect { message ->
+                    if (message != null) {
+                        showMessage(message)
+                        viewModel.clearError()
+                    }
+                }
+            }
+        }
     }
 }

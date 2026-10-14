@@ -1,11 +1,7 @@
 package com.example.notesapp.ui.manage.edit
 
 import android.os.Bundle
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
-import android.widget.Toast
-import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -13,21 +9,14 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import com.example.notesapp.R
 import com.example.notesapp.data.model.Note
-import com.example.notesapp.databinding.FragmentEditBinding
+import com.example.notesapp.ui.manage.base.BaseManageFragment
 import kotlinx.coroutines.launch
 
-class EditFragment : Fragment() {
+class EditFragment : BaseManageFragment() {
 
-    private var _binding: FragmentEditBinding? = null
-    private val binding get() = _binding!!
-
-    private val viewModel: EditViewModel by viewModels {
+    override val viewModel: EditViewModel by viewModels {
         EditViewModel.factory
     }
-
-    private var noteId: String = ""
-    private var selectedColor: Long = 0xFF2D3033L
-    private var loadedNoteId: String? = null
 
     private val noteColors = mapOf(
         R.id.color0 to 0xFF2D3033L,
@@ -38,36 +27,56 @@ class EditFragment : Fragment() {
         R.id.color5 to 0xFF505255L
     )
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        _binding = FragmentEditBinding.inflate(
-            inflater,
-            container,
-            false
-        )
-        return binding.root
-    }
+    private var selectedColor = 0xFF2D3033L
+    private var noteId = ""
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+    override fun onViewCreated(
+        view: View,
+        savedInstanceState: Bundle?
+    ) {
         super.onViewCreated(view, savedInstanceState)
 
         noteId = arguments?.getString("noteId").orEmpty()
+
+        if (noteId.isBlank()) {
+            showMessage("Note not found")
+            findNavController().navigateUp()
+            return
+        }
+
+        binding.editorHeading.text = "Edit note"
+        binding.saveNoteButton.text = "Update"
+        binding.moveToTrashButton.visibility = View.VISIBLE
 
         setupListeners()
         observeNote()
         observeSaveResult()
         observeDeleteResult()
         observeErrors()
+        loadNote()
+    }
 
-        if (noteId.isBlank()) {
-            showMessage("Note ID is missing")
-            return
+    private fun setupListeners() {
+        binding.backButton.setOnClickListener {
+            findNavController().navigateUp()
         }
 
+        binding.colorChipGroup.setOnCheckedStateChangeListener { group, _ ->
+            selectedColor =
+                noteColors[group.checkedChipId] ?: selectedColor
+        }
 
+        binding.saveNoteButton.setOnClickListener {
+            updateNote()
+        }
+
+        binding.moveToTrashButton.setOnClickListener {
+            binding.moveToTrashButton.isEnabled = false
+            viewModel.moveToTrash()
+        }
+    }
+
+    private fun loadNote() {
         val args = requireArguments()
 
         val cachedNote = Note(
@@ -81,96 +90,72 @@ class EditFragment : Fragment() {
             )
         )
 
-        // Display the existing data immediately.
         viewModel.setInitialNote(cachedNote)
-
-        // Refresh from Firestore in the background if necessary.
         viewModel.loadNote(noteId)
-
     }
 
-    private fun setupListeners() {
-        binding.backButton.setOnClickListener {
-            findNavController().navigateUp()
+    private fun updateNote() {
+        val title = binding.editTitle.text.toString().trim()
+        val content = binding.editContent.text.toString().trim()
+
+        if (title.isBlank()) {
+            showMessage("Please enter a title")
+            binding.editTitle.requestFocus()
+            return
         }
 
-        binding.colorChipGroup.setOnCheckedStateChangeListener { _, checkedIds ->
-            val checkedId = checkedIds.firstOrNull()
+        binding.saveNoteButton.isEnabled = false
 
-            if (checkedId != null) {
-                selectedColor = noteColors[checkedId] ?: selectedColor
-            }
-        }
-
-        binding.saveNoteButton.setOnClickListener {
-            val title = binding.editTitle.text.toString()
-            val content = binding.editContent.text.toString()
-
-            if (title.isBlank()) {
-                binding.editTitle.error = "Title is required"
-                return@setOnClickListener
-            }
-
-            binding.saveNoteButton.isEnabled = false
-
-            viewModel.updateNote(
-                title = title,
-                content = content,
-                color = selectedColor
-            )
-        }
-
-        binding.moveToTrashButton.setOnClickListener {
-            binding.moveToTrashButton.isEnabled = false
-            viewModel.moveToTrash()
-        }
+        viewModel.updateNote(
+            title = title,
+            content = content,
+            color = selectedColor
+        )
     }
 
     private fun observeNote() {
         viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            viewLifecycleOwner.repeatOnLifecycle(
+                Lifecycle.State.STARTED
+            ) {
                 viewModel.note.collect { note ->
-                    if (note == null || note.id == loadedNoteId) {
-                        return@collect
-                    }
-
-                    loadedNoteId = note.id
+                    note ?: return@collect
 
                     binding.editTitle.setText(note.title)
                     binding.editContent.setText(note.content)
 
-                        // Change the Edit page background to match the note color.
-                    binding.editRoot.setBackgroundColor(note.color.toInt())
+                    binding.manageNoteRoot.setBackgroundColor(
+                        note.color.toInt()
+                    )
 
                     selectedColor = note.color
 
-                    val selectedChipId = noteColors.entries
-                        .firstOrNull { it.value == note.color }
-                        ?.key ?: R.id.color0
+                    val matchingChip = noteColors.entries
+                        .firstOrNull {
+                            it.value.toInt() == note.color.toInt()
+                        }?.key ?: R.id.color0
 
-                    binding.colorChipGroup.check(selectedChipId)
+                    binding.colorChipGroup.check(matchingChip)
                 }
             }
         }
     }
 
-
     private fun observeSaveResult() {
         viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            viewLifecycleOwner.repeatOnLifecycle(
+                Lifecycle.State.STARTED
+            ) {
                 viewModel.saveResult.collect { result ->
                     when (result) {
                         true -> {
-                            binding.saveNoteButton.isEnabled = true
-                            viewModel.resetSaveResult()
                             showMessage("Note updated successfully")
-                            findNavController().navigateUp()
+                            viewModel.resetSaveResult()
                         }
 
                         false -> {
                             binding.saveNoteButton.isEnabled = true
                             viewModel.resetSaveResult()
-                            showMessage("Failed to save note")
                         }
 
                         null -> Unit
@@ -180,24 +165,23 @@ class EditFragment : Fragment() {
         }
     }
 
-
     private fun observeDeleteResult() {
         viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            viewLifecycleOwner.repeatOnLifecycle(
+                Lifecycle.State.STARTED
+            ) {
                 viewModel.deleteResult.collect { result ->
                     when (result) {
                         true -> {
+                            showMessage("Note moved to Trash")
                             viewModel.resetDeleteResult()
 
-                            findNavController().popBackStack(
-                                R.id.homeFragment,
-                                false
+                            findNavController().navigate(
+                                R.id.homeFragment
                             )
-                        }
-
-                        false -> {
-                            viewModel.resetDeleteResult()
+                        } false -> {
                             binding.moveToTrashButton.isEnabled = true
+                            viewModel.resetDeleteResult()
                         }
 
                         null -> Unit
@@ -209,27 +193,16 @@ class EditFragment : Fragment() {
 
     private fun observeErrors() {
         viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.error.collect { message ->
-                    if (message != null) {
-                        showMessage(message)
+            viewLifecycleOwner.repeatOnLifecycle(
+                Lifecycle.State.STARTED
+            ) {
+                viewModel.error.collect { error ->
+                    if (!error.isNullOrBlank()) {
+                        showMessage(error)
                         viewModel.clearError()
                     }
                 }
             }
         }
-    }
-
-    private fun showMessage(message: String) {
-        Toast.makeText(
-            requireContext(),
-            message,
-            Toast.LENGTH_SHORT
-        ).show()
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
     }
 }
