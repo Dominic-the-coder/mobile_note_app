@@ -12,11 +12,13 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import com.example.notesapp.R
+import com.example.notesapp.data.model.Note
 import com.example.notesapp.databinding.FragmentDetailsBinding
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
-import kotlinx.coroutines.launch
 
 class DetailsFragment : Fragment() {
 
@@ -42,7 +44,10 @@ class DetailsFragment : Fragment() {
         return binding.root
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+    override fun onViewCreated(
+        view: View,
+        savedInstanceState: Bundle?
+    ) {
         super.onViewCreated(view, savedInstanceState)
 
         noteId = arguments?.getString("noteId").orEmpty()
@@ -51,11 +56,10 @@ class DetailsFragment : Fragment() {
             findNavController().navigateUp()
         }
 
-
         binding.editNoteButton.setOnClickListener {
             val note = viewModel.note.value
 
-            if (note != null && !noteId.isBlank()) {
+            if (note != null && noteId.isNotBlank()) {
                 val bundle = Bundle().apply {
                     putString("noteId", noteId)
                     putString("noteTitle", note.title)
@@ -71,7 +75,6 @@ class DetailsFragment : Fragment() {
             }
         }
 
-
         binding.deleteNoteButton.setOnClickListener {
             if (noteId.isNotBlank()) {
                 binding.deleteNoteButton.isEnabled = false
@@ -81,9 +84,9 @@ class DetailsFragment : Fragment() {
             }
         }
 
-
         if (noteId.isBlank()) {
             showMessage("Note ID is missing")
+            findNavController().navigateUp()
             return
         }
 
@@ -92,7 +95,7 @@ class DetailsFragment : Fragment() {
 
         val args = requireArguments()
 
-        val cachedNote = com.example.notesapp.data.model.Note(
+        val cachedNote = Note(
             id = noteId,
             title = args.getString("noteTitle").orEmpty(),
             content = args.getString("noteContent").orEmpty(),
@@ -105,7 +108,6 @@ class DetailsFragment : Fragment() {
 
         viewModel.setInitialNote(cachedNote)
         viewModel.loadNote(noteId)
-
     }
 
     private fun observeNote() {
@@ -122,14 +124,9 @@ class DetailsFragment : Fragment() {
                     binding.detailContent.text =
                         note.content.ifBlank { "No content" }
 
-                    val formattedDate = SimpleDateFormat(
-                        "dd MMM yyyy, hh:mm a",
-                        Locale.getDefault()
-                    ).format(Date(note.updatedAt))
+                    binding.detailDate.text =
+                        formatUpdatedDate(note.updatedAt)
 
-                    binding.detailDate.text = "Last edited $formattedDate"
-
-                    // Change the entire detail page background.
                     binding.detailsRoot.setBackgroundColor(
                         note.color.toInt()
                     )
@@ -138,9 +135,50 @@ class DetailsFragment : Fragment() {
         }
     }
 
+    private fun formatUpdatedDate(timestamp: Long): String {
+        val updatedCalendar = Calendar.getInstance().apply {
+            timeInMillis = timestamp
+        }
+
+        val today = Calendar.getInstance()
+
+        val yesterday = Calendar.getInstance().apply {
+            add(Calendar.DAY_OF_YEAR, -1)
+        }
+
+        val dateLabel = when {
+            isSameDay(updatedCalendar, today) -> "Today"
+
+            isSameDay(updatedCalendar, yesterday) -> "Yesterday"
+
+            else -> SimpleDateFormat(
+                "dd MMM yyyy",
+                Locale.getDefault()
+            ).format(Date(timestamp))
+        }
+
+        val timeLabel = SimpleDateFormat(
+            "hh:mm a",
+            Locale.getDefault()
+        ).format(Date(timestamp))
+
+        return "Last edited $dateLabel at $timeLabel"
+    }
+
+    private fun isSameDay(
+        first: Calendar,
+        second: Calendar
+    ): Boolean {
+        return first.get(Calendar.YEAR) == second.get(Calendar.YEAR) &&
+                first.get(Calendar.DAY_OF_YEAR) ==
+                second.get(Calendar.DAY_OF_YEAR)
+    }
+
     private fun observeDeleteResult() {
         viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            viewLifecycleOwner.repeatOnLifecycle(
+                Lifecycle.State.STARTED
+            ) {
                 viewModel.deleteResult.collect { result ->
                     when (result) {
                         true -> {
