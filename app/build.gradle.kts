@@ -14,7 +14,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.notesapp"
-        minSdk = 24
+        minSdk = 28
         targetSdk = 37
         versionCode = 1
         versionName = "1.0"
@@ -47,7 +47,12 @@ dependencies {
     implementation(libs.material)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
+    implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
+    implementation(libs.firebase.auth)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
