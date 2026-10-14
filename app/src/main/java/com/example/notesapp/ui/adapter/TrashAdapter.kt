@@ -6,6 +6,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.notesapp.data.model.Note
 import com.example.notesapp.databinding.ItemTrashNoteBinding
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -37,11 +38,7 @@ class TrashAdapter(
             )
 
             val deletedTimestamp = note.deletedAt ?: note.updatedAt
-
-            val deletedDate = SimpleDateFormat(
-                "dd MMM yyyy",
-                Locale.getDefault()
-            ).format(Date(deletedTimestamp))
+            val deletedDate = formatDeletedDate(deletedTimestamp)
 
             binding.trashDeletedDate.text = "Deleted on $deletedDate"
 
@@ -52,6 +49,40 @@ class TrashAdapter(
             binding.deleteForeverButton.setOnClickListener {
                 onDeleteClick(note)
             }
+        }
+
+        private fun formatDeletedDate(timestamp: Long): String {
+            val deletedCalendar = Calendar.getInstance().apply {
+                timeInMillis = timestamp
+            }
+
+            val todayCalendar = Calendar.getInstance()
+
+            if (isSameDay(deletedCalendar, todayCalendar)) {
+                return "Today"
+            }
+
+            val yesterdayCalendar = Calendar.getInstance().apply {
+                add(Calendar.DAY_OF_YEAR, -1)
+            }
+
+            if (isSameDay(deletedCalendar, yesterdayCalendar)) {
+                return "Yesterday"
+            }
+
+            return SimpleDateFormat(
+                "dd MMM yyyy",
+                Locale.getDefault()
+            ).format(Date(timestamp))
+        }
+
+        private fun isSameDay(
+            first: Calendar,
+            second: Calendar
+        ): Boolean {
+            return first.get(Calendar.YEAR) == second.get(Calendar.YEAR) &&
+                    first.get(Calendar.DAY_OF_YEAR) ==
+                    second.get(Calendar.DAY_OF_YEAR)
         }
     }
 
