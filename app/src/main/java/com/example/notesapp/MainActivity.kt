@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.example.notesapp.core.AuthService
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.MetadataChanges
 import com.google.firebase.firestore.firestore
@@ -44,5 +45,7 @@ class MainActivity : AppCompatActivity() {
             if (e != null) { Log.e("FS", "LISTEN FAILED", e); return@addSnapshotListener }
             Log.d("FS", "docs=${snap?.size()} fromCache=${snap?.metadata?.isFromCache} pending=${snap?.metadata?.hasPendingWrites()}")
         }
+
+        AuthService.logout()
     }
 }
