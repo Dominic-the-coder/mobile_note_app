@@ -37,16 +37,6 @@ class HomeViewModel(
         }
     }
 
-    fun deleteNote(id: String) {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                repo.deleteNote(id)
-            } catch (e: Exception) {
-                _error.value = e.message ?: "Failed to delete note"
-            }
-        }
-    }
-
     fun clearError() {
         _error.value = null
     }
